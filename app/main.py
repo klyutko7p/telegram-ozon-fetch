@@ -89,6 +89,7 @@ def parse_product():
                 ozon_parser = Ozon(driver=driver, url=url)
                 product_data = ozon_parser()
                 if product_data:
+                    driver.quit()
                     return jsonify(product_data), 200
                 else:
                     driver.quit()
