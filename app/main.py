@@ -68,7 +68,7 @@ def handle_post():
     }
 
     driver.close()
-    driver.switch_to.window(driver.window_handles[0])
+    # driver.switch_to.window(driver.window_handles[0])
     # return product_data
 
     # jsonData = driver.find_element(By.TAG_NAME, "body").text
