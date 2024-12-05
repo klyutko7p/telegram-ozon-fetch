@@ -1,5 +1,6 @@
 import re
 
+from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
@@ -31,15 +32,46 @@ app = Flask(__name__)
 driver = init_webdriver()
 
 
+def del_to_not_dig(s: str):
+    for dig in s:
+        if not dig.isdigit():
+            s = s.replace(dig, '')
+    n = 1
+    for d in range(len(s))[::-1]:
+        if n == 3:
+            s = s[:d] + ' ' + s[d:]
+            n = 0
+        else:
+            n += 1
+    return s + ' ₽'
+
 @app.route('/parse', methods=['POST'])
 def handle_post():
     url = request.json['url']
     print(url)
     driver.get(url)
-    print(driver.page_source)
     time.sleep(5)
     print(driver.page_source)
-    jsonData = driver.find_element(By.TAG_NAME, "body").text
+    page = str(driver.page_source)
+    soup = BeautifulSoup(page, 'lxml')
 
-    response_data = {'status': 'success', 'message': f'{jsonData}'}
+    product_name = soup.find('div', attrs={'data-widget': 'webProductHeading'}).find('h1').text.strip()
+    try:
+        list_tag_prices = soup.find('span', string='без Ozon Карты').parent.parent.find('div').find_all('span')
+        product_discount_price = list_tag_prices[0].text
+    except:
+        product_discount_price = None
+
+    product_data = {
+        'product_name': product_name,
+        'product_discount_price': del_to_not_dig(product_discount_price),
+    }
+
+    driver.close()
+    driver.switch_to.window(driver.window_handles[0])
+    # return product_data
+
+    # jsonData = driver.find_element(By.TAG_NAME, "body").text
+
+    response_data = {'status': 'success', 'message': f'{product_data}'}
     return jsonify(response_data)
