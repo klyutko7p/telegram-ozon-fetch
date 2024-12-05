@@ -3,6 +3,7 @@ from selenium import webdriver
 from fake_useragent import UserAgent
 from bs4 import BeautifulSoup
 from selenium_stealth import stealth
+import time
 from selenium.webdriver.chrome.options import Options
 
 app = Flask(__name__)
@@ -29,6 +30,7 @@ class Ozon:
     def product_data_pars(self, url: str):
         self.driver.switch_to.new_window('tab')
         self.driver.get(url)
+        time.sleep(5)
         page = str(self.driver.page_source)
         soup = BeautifulSoup(page, 'lxml')
         print(soup)
