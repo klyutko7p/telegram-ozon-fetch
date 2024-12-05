@@ -2,6 +2,8 @@ from flask import Flask, request, jsonify
 from selenium import webdriver
 from fake_useragent import UserAgent
 from bs4 import BeautifulSoup
+from selenium_stealth import stealth
+from selenium.webdriver.chrome.options import Options
 
 app = Flask(__name__)
 
@@ -47,6 +49,19 @@ class Ozon:
         self.driver.switch_to.window(self.driver.window_handles[0])
         return product_data
 
+
+options = Options()
+options.add_argument("--headless");
+options.add_argument("--disable-gpu");
+options.add_argument("--no-sandbox");
+options.add_argument("--enable-javascript")
+options.add_argument(f"user-agent={UserAgent().random}")
+
+def init_webdriver():
+    driver = webdriver.Chrome(options=options)
+    stealth(driver, platform="Win32")
+    return driver
+
 @app.route('/parse', methods=['POST'])
 def parse_product():
     data = request.json
@@ -54,14 +69,9 @@ def parse_product():
     if not url:
         return jsonify({'error': 'No URL provided'}), 400
 
-    options = webdriver.ChromeOptions()
-    options.add_argument('--headless=new')
-    options.add_argument("--disable-gpu")
-    options.add_argument("--no-sandbox")
-    options.add_argument("--enable-javascript")
-    options.add_argument(f"user-agent={UserAgent().random}")
 
-    with webdriver.Chrome(options=options) as driver:
+
+    with init_webdriver() as driver:
         ozon_parser = Ozon(driver=driver, url=url)
         try:
             product_data = ozon_parser.product_data_pars(url)
