@@ -1,3 +1,5 @@
+import time
+
 from flask import Flask, request, jsonify
 from selenium import webdriver
 from fake_useragent import UserAgent
@@ -62,6 +64,7 @@ def parse_product():
 
     with webdriver.Chrome(options=options) as driver:
         ozon_parser = Ozon(driver=driver, url=url)
+        time.sleep(5)
         try:
             product_data = ozon_parser.product_data_pars(url)
             return jsonify(product_data), 200
