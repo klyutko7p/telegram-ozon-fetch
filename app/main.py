@@ -1,11 +1,11 @@
-import time
-
 from flask import Flask, request, jsonify
 from selenium import webdriver
 from fake_useragent import UserAgent
 from bs4 import BeautifulSoup
+import time
 
 app = Flask(__name__)
+
 
 class Ozon:
     def __init__(self, url: str, driver: webdriver, timing=2):
@@ -26,13 +26,15 @@ class Ozon:
                 n += 1
         return s + ' ₽'
 
+    def go_get(self) -> None:
+        self.driver.get(self.url)
+        time.sleep(self.timing)
+
     def product_data_pars(self, url: str):
         self.driver.switch_to.new_window('tab')
         self.driver.get(url)
-        time.sleep(5)
         page = str(self.driver.page_source)
         soup = BeautifulSoup(page, 'lxml')
-        print(soup)
 
         product_name = soup.find('div', attrs={'data-widget': 'webProductHeading'}).find('h1').text.strip()
         try:
@@ -50,6 +52,23 @@ class Ozon:
         self.driver.switch_to.window(self.driver.window_handles[0])
         return product_data
 
+    def go_product_datas(self) -> None:
+        try:
+            data: dict = self.product_data_pars(url=self.url)
+            self.flag = True
+            return f'Наименование товара: {data['product_name']}\nЦена товара: {data['product_discount_price']}\n\n'
+        except Exception as err:
+            return None
+            return f'[-] При работе с ссылкой возникла ошибка {err}.'
+
+    def __call__(self, *args, **kwds):
+        self.go_get()
+        time.sleep(0.1)
+        self.driver.refresh()
+        time.sleep(0.1)
+        return self.go_product_datas()
+
+
 @app.route('/parse', methods=['POST'])
 def parse_product():
     data = request.json
@@ -57,18 +76,25 @@ def parse_product():
     if not url:
         return jsonify({'error': 'No URL provided'}), 400
 
-    options = webdriver.ChromeOptions()
-    options.add_argument('--headless=new')
-    options.add_argument("--disable-gpu")
-    options.add_argument("--no-sandbox")
-    options.add_argument("--enable-javascript")
-    options.add_argument(f"user-agent={UserAgent().random}")
-
-    with webdriver.Chrome(options=options) as driver:
-        ozon_parser = Ozon(driver=driver, url=url)
+    while True:
         try:
-            product_data = ozon_parser.product_data_pars(url)
-            return jsonify(product_data), 200
-        except Exception as e:
-            return jsonify({'error': str(e)}), 500
+            options = webdriver.ChromeOptions()
+            options.add_argument('--headless=new')
+            options.add_argument("--disable-gpu")
+            options.add_argument("--no-sandbox")
+            options.add_argument("--enable-javascript")
+            options.add_argument(f"user-agent={UserAgent().random}")
+
+            with webdriver.Chrome(options=options) as driver:
+                ozon_parser = Ozon(driver=driver, url=url)
+                product_data = ozon_parser()
+                if product_data:
+                    return jsonify(product_data), 200
+                else:
+                    continue
+        except:
+            continue
+
+
+
 
