@@ -8,7 +8,7 @@ app = Flask(__name__)
 
 
 class Ozon:
-    def __init__(self, url: str, driver: webdriver, timing=1):
+    def __init__(self, url: str, driver: webdriver, timing=0.25):
         self.driver = driver
         self.url = url
         self.timing = timing
