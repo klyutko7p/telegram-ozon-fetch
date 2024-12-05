@@ -115,6 +115,7 @@ class Ozon:
         time.sleep(5)
         page = str(self.driver.page_source)
         soup = BeautifulSoup(page, 'lxml')
+        print(soup)
 
         product_name = soup.find('div', attrs={'data-widget': 'webProductHeading'}).find('h1').text.strip()
         try:
