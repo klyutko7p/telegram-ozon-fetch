@@ -35,6 +35,7 @@ class Ozon:
         self.driver.get(url)
         page = str(self.driver.page_source)
         soup = BeautifulSoup(page, 'lxml')
+        print(soup)
 
         product_name = soup.find('div', attrs={'data-widget': 'webProductHeading'}).find('h1').text.strip()
         try:
@@ -83,7 +84,7 @@ def parse_product():
             options.add_argument("--disable-gpu")
             options.add_argument("--no-sandbox")
             options.add_argument("--enable-javascript")
-            # options.add_argument(f"user-agent={UserAgent().random}")
+            options.add_argument(f"user-agent={UserAgent().random}")
 
             with webdriver.Chrome(options=options) as driver:
                 ozon_parser = Ozon(driver=driver, url=url)
