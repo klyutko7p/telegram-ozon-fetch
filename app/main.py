@@ -29,6 +29,7 @@ class Ozon:
     def product_data_pars(self, url: str):
         self.driver.switch_to.new_window('tab')
         self.driver.get(url)
+        time.sleep(5)
         page = str(self.driver.page_source)
         soup = BeautifulSoup(page, 'lxml')
         print(soup)
@@ -65,7 +66,6 @@ def parse_product():
 
     with webdriver.Chrome(options=options) as driver:
         ozon_parser = Ozon(driver=driver, url=url)
-        time.sleep(5)
         try:
             product_data = ozon_parser.product_data_pars(url)
             return jsonify(product_data), 200
