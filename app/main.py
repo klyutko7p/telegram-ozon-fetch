@@ -91,6 +91,7 @@ def parse_product():
                 if product_data:
                     return jsonify(product_data), 200
                 else:
+                    driver.close()
                     continue
         except:
             continue
