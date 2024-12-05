@@ -8,7 +8,7 @@ app = Flask(__name__)
 
 
 class Ozon:
-    def __init__(self, url: str, driver: webdriver, timing=3):
+    def __init__(self, url: str, driver: webdriver, timing=2):
         self.driver = driver
         self.url = url
         self.timing = timing
@@ -75,7 +75,6 @@ class Ozon:
 def parse_product():
     data = request.json
     url = data.get('url')
-    print(url)
     if not url:
         return jsonify({'error': 'No URL provided'}), 400
 
@@ -92,10 +91,8 @@ def parse_product():
                 ozon_parser = Ozon(driver=driver, url=url)
                 product_data = ozon_parser()
                 if product_data:
-                    driver.close()
-                    return jsonify(product_data), 200
+                    return jsonify(product_data)
                 else:
-                    driver.close()
                     continue
         except:
             continue
