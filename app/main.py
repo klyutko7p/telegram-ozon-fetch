@@ -58,7 +58,10 @@ class Ozon:
         try:
             data: dict = self.product_data_pars(url=self.url)
             self.flag = True
-            return f'Наименование товара: {data['product_name']}\nЦена товара: {data['product_discount_price']}\n\n'
+            return {
+                "product_name": data['product_name'],
+                "product_discount_price": data['product_discount_price']
+            }
         except Exception as err:
             return None
             return f'[-] При работе с ссылкой возникла ошибка {err}.'
