@@ -75,6 +75,7 @@ class Ozon:
 def parse_product():
     data = request.json
     url = data.get('url')
+    print(url)
     if not url:
         return jsonify({'error': 'No URL provided'}), 400
 
