@@ -1,3 +1,4 @@
+import json
 from flask import Flask, request, jsonify
 from selenium import webdriver
 from fake_useragent import UserAgent
@@ -8,7 +9,7 @@ app = Flask(__name__)
 
 
 class Ozon:
-    def __init__(self, url: str, driver: webdriver, timing=3):
+    def __init__(self, url: str, driver: webdriver, timing=2):
         self.driver = driver
         self.url = url
         self.timing = timing
@@ -37,7 +38,6 @@ class Ozon:
         soup = BeautifulSoup(page, 'lxml')
         print(soup)
 
-
         product_name = soup.find('div', attrs={'data-widget': 'webProductHeading'}).find('h1').text.strip()
         try:
             list_tag_prices = soup.find('span', string='без Ozon Карты').parent.parent.find('div').find_all('span')
@@ -58,7 +58,10 @@ class Ozon:
         try:
             data: dict = self.product_data_pars(url=self.url)
             self.flag = True
-            return f'Наименование товара: {data['product_name']}\nЦена товара: {data['product_discount_price']}\n\n'
+            return {
+                "product_name": data['product_name'],
+                "product_discount_price": data['product_discount_price']
+            }
         except Exception as err:
             return None
             return f'[-] При работе с ссылкой возникла ошибка {err}.'
@@ -71,35 +74,49 @@ class Ozon:
         return self.go_product_datas()
 
 
+# функция записи юзерагента в лог
+def write_ua_logs(ua: str) -> None:
+    dct: dict = {}
+    try:
+        with open("log_ua.json", "x", encoding='utf-8') as file:
+            json.dump(dct, file)
+    except FileExistsError:
+        pass
+
+    with open("log_ua.json", "r") as file:
+        dct = json.load(file)
+
+    with open("log_ua.json", "w") as file:
+        dct[ua] = dct.get(ua, 0) + 1
+        json.dump(dct, file, indent=4, ensure_ascii=False)
+
+
 @app.route('/parse', methods=['POST'])
 def parse_product():
     data = request.json
     url = data.get('url')
-    print(url)
     if not url:
         return jsonify({'error': 'No URL provided'}), 400
 
     while True:
         try:
+            ua = UserAgent().random  # юезр агент в переменную
             options = webdriver.ChromeOptions()
             options.add_argument('--headless=new')
             options.add_argument("--disable-gpu")
             options.add_argument("--no-sandbox")
             options.add_argument("--enable-javascript")
-            options.add_argument(f"user-agent={UserAgent().random}")
+            options.add_argument(f"user-agent={ua}")  # юзер агент заносится из переменной
 
             with webdriver.Chrome(options=options) as driver:
                 ozon_parser = Ozon(driver=driver, url=url)
                 product_data = ozon_parser()
                 if product_data:
                     driver.close()
+                    write_ua_logs(ua)  # запись юзерагент в лог
                     return jsonify(product_data), 200
                 else:
                     driver.close()
                     continue
         except:
             continue
-
-
-
-
