@@ -90,28 +90,6 @@ def write_ua_logs(ua: str) -> None:
         json.dump(dct, file, indent=4, ensure_ascii=False)
 
 
-user_agents = {
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36 Edg/121.0.0.0": 9,
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:123.0) Gecko/20100101 Firefox/123.0": 3,
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 DuckDuckGo/7 Safari/605.1.15": 1,
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15": 2,
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36 Edg/121.0.0.0 Trailer/92.3.3357.27": 1,
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_6) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15": 1,
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36 Edg/121.0.0.0 Unique/97.7.7286.70": 2,
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36": 3,
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36 Edg/121.0.0.0 Trailer/93.3.3695.30": 1,
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36 Config/92.2.2788.20": 1,
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36 Edg/121.0.0.0 GLS/100.10.9415.94": 1,
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:123.0) Gecko/20100101 Firefox/123.0 Config/91.2.2121.13": 1
-}
-
-# Функция для загрузки юзер-агентов из файла
-def get_best_user_agent(user_agents):
-    # Сортируем по количеству успешных попыток
-    sorted_ua = sorted(user_agents.items(), key=lambda item: item[1], reverse=True)
-    # Возвращаем юзер-агент с наибольшим числом успешных попыток
-    return sorted_ua[0][0] if sorted_ua else None
-
 @app.route('/parse', methods=['POST'])
 def parse_product():
     data = request.json
@@ -121,11 +99,7 @@ def parse_product():
 
     while True:
         try:
-            ua = get_best_user_agent(user_agents)  # Получаем лучший юзер-агент
-            if not ua:
-                print("Нет доступных юзер-агентов.")
-                break
-
+            ua = UserAgent().random  # юезр агент в переменную
             options = webdriver.ChromeOptions()
             options.add_argument('--headless=new')
             options.add_argument("--disable-gpu")
@@ -138,6 +112,7 @@ def parse_product():
                 product_data = ozon_parser()
                 if product_data:
                     driver.close()
+                    write_ua_logs(ua)  # запись юзерагент в лог
                     return jsonify(product_data), 200
                 else:
                     driver.close()
