@@ -36,7 +36,6 @@ class Ozon:
         self.driver.get(url)
         page = str(self.driver.page_source)
         soup = BeautifulSoup(page, 'lxml')
-        print(soup)
 
         product_name = soup.find('div', attrs={'data-widget': 'webProductHeading'}).find('h1').text.strip()
         try:
@@ -91,6 +90,21 @@ def write_ua_logs(ua: str) -> None:
         json.dump(dct, file, indent=4, ensure_ascii=False)
 
 
+# Функция для загрузки юзер-агентов из файла
+def get_best_user_agent(log_file_path):
+    try:
+        with open(log_file_path, 'r') as file:
+            log_data = json.load(file)
+        # Сортировка по количеству успешных попыток в порядке убывания
+        sorted_ua = sorted(log_data.items(), key=lambda item: item[1], reverse=True)
+        # Возвращаем самый успешный юзер-агент
+        return sorted_ua[0][0] if sorted_ua else None
+    except Exception as e:
+        print(f"Ошибка загрузки файла: {e}")
+        return None
+
+log_file_path = 'log_ua.json'
+
 @app.route('/parse', methods=['POST'])
 def parse_product():
     data = request.json
@@ -100,7 +114,11 @@ def parse_product():
 
     while True:
         try:
-            ua = UserAgent().random  # юезр агент в переменную
+            ua = get_best_user_agent(log_file_path)  # Получаем юзер-агент из файла
+            if not ua:
+                print("Нет доступных юзер-агентов.")
+                break
+
             options = webdriver.ChromeOptions()
             options.add_argument('--headless=new')
             options.add_argument("--disable-gpu")
@@ -113,7 +131,6 @@ def parse_product():
                 product_data = ozon_parser()
                 if product_data:
                     driver.close()
-                    write_ua_logs(ua)  # запись юзерагент в лог
                     return jsonify(product_data), 200
                 else:
                     driver.close()
