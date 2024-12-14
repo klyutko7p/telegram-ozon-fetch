@@ -1,4 +1,3 @@
-import json
 from flask import Flask, request, jsonify
 from selenium import webdriver
 from fake_useragent import UserAgent
@@ -36,6 +35,8 @@ class Ozon:
         self.driver.get(url)
         page = str(self.driver.page_source)
         soup = BeautifulSoup(page, 'lxml')
+        print(soup)
+
 
         product_name = soup.find('div', attrs={'data-widget': 'webProductHeading'}).find('h1').text.strip()
         try:
@@ -73,23 +74,6 @@ class Ozon:
         return self.go_product_datas()
 
 
-# функция записи юзерагента в лог
-def write_ua_logs(ua: str) -> None:
-    dct: dict = {}
-    try:
-        with open("log_ua.json", "x", encoding='utf-8') as file:
-            json.dump(dct, file)
-    except FileExistsError:
-        pass
-
-    with open("log_ua.json", "r") as file:
-        dct = json.load(file)
-
-    with open("log_ua.json", "w") as file:
-        dct[ua] = dct.get(ua, 0) + 1
-        json.dump(dct, file, indent=4, ensure_ascii=False)
-
-
 @app.route('/parse', methods=['POST'])
 def parse_product():
     data = request.json
@@ -99,20 +83,18 @@ def parse_product():
 
     while True:
         try:
-            ua = UserAgent().random  # юезр агент в переменную
             options = webdriver.ChromeOptions()
             options.add_argument('--headless=new')
             options.add_argument("--disable-gpu")
             options.add_argument("--no-sandbox")
             options.add_argument("--enable-javascript")
-            options.add_argument(f"user-agent={ua}")  # юзер агент заносится из переменной
+            options.add_argument(f"user-agent={UserAgent().random}")
 
             with webdriver.Chrome(options=options) as driver:
                 ozon_parser = Ozon(driver=driver, url=url)
                 product_data = ozon_parser()
                 if product_data:
                     driver.close()
-                    write_ua_logs(ua)  # запись юзерагент в лог
                     return jsonify(product_data), 200
                 else:
                     driver.close()
