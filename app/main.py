@@ -1,3 +1,4 @@
+import json
 from flask import Flask, request, jsonify
 from selenium import webdriver
 from fake_useragent import UserAgent
@@ -35,8 +36,6 @@ class Ozon:
         self.driver.get(url)
         page = str(self.driver.page_source)
         soup = BeautifulSoup(page, 'lxml')
-        print(soup)
-
 
         product_name = soup.find('div', attrs={'data-widget': 'webProductHeading'}).find('h1').text.strip()
         try:
@@ -74,6 +73,42 @@ class Ozon:
         return self.go_product_datas()
 
 
+# функция записи юзерагента в лог
+def write_ua_logs(ua: str) -> None:
+    dct: dict = {}
+    try:
+        with open("log_ua.json", "x", encoding='utf-8') as file:
+            json.dump(dct, file)
+    except FileExistsError:
+        pass
+
+    with open("log_ua.json", "r") as file:
+        dct = json.load(file)
+
+    with open("log_ua.json", "w") as file:
+        dct[ua] = dct.get(ua, 0) + 1
+        json.dump(dct, file, indent=4, ensure_ascii=False)
+
+
+user_agents = {
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36 Edg/121.0.0.0": 9,
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:123.0) Gecko/20100101 Firefox/123.0": 3,
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 DuckDuckGo/7 Safari/605.1.15": 1,
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15": 2,
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36 Edg/121.0.0.0 Trailer/92.3.3357.27": 1,
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_6) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15": 1,
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36 Edg/121.0.0.0 Unique/97.7.7286.70": 2,
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36": 3,
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36 Edg/121.0.0.0 Trailer/93.3.3695.30": 1,
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36 Config/92.2.2788.20": 1,
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36 Edg/121.0.0.0 GLS/100.10.9415.94": 1,
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:123.0) Gecko/20100101 Firefox/123.0 Config/91.2.2121.13": 1
+}
+
+def get_best_user_agent(user_agents):
+    sorted_ua = sorted(user_agents.items(), key=lambda item: item[1], reverse=True)
+    return sorted_ua if sorted_ua else None
+
 @app.route('/parse', methods=['POST'])
 def parse_product():
     data = request.json
@@ -81,14 +116,20 @@ def parse_product():
     if not url:
         return jsonify({'error': 'No URL provided'}), 400
 
+    num_ua = -1
     while True:
+        num_ua += 1
         try:
+            ua = get_best_user_agent(user_agents)[num_ua][0]
+            if not ua:
+                print("Нет доступных юзер-агентов.")
+                break
             options = webdriver.ChromeOptions()
             options.add_argument('--headless=new')
             options.add_argument("--disable-gpu")
             options.add_argument("--no-sandbox")
             options.add_argument("--enable-javascript")
-            options.add_argument(f"user-agent={UserAgent().random}")
+            options.add_argument(f"user-agent={ua}")
 
             with webdriver.Chrome(options=options) as driver:
                 ozon_parser = Ozon(driver=driver, url=url)
